@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "image-search"
+version = "0.1.0"
+description = ""
+authors = ["Xavier Belda <xaviblx@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10, <3.12"
+pandas = "^2.2.0"
+torch = "^2.2.0"
+transformers = "^4.37.2"
+torchvision = "^0.17.0"
+pytorch-lightning = "^2.1.4"
+matplotlib = "^3.8.2"
+mlflow = "^2.10.0"
+sentencepiece = "^0.1.99"
+timm = "^0.9.12"
+
+
+[tool.poetry.group.dev.dependencies]
+jupyterlab = "^4.0.12"
+pytest = "^8.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
