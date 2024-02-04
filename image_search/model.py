@@ -2,12 +2,14 @@ import pytorch_lightning as pl
 import torch
 
 from image_search.metrics import in_batch_recall_at_1
+from transformers import SiglipModel
 
 
 class LightningImageSearchSigLIP(pl.LightningModule):
-    def __init__(self, model):
+    def __init__(self, model: SiglipModel, lr: float):
         super().__init__()
         self.model = model
+        self.lr = lr
 
     def _basic_step(self, input_ids, pixel_values):
         outputs = self.model(input_ids=input_ids, pixel_values=pixel_values)
@@ -41,12 +43,13 @@ class LightningImageSearchSigLIP(pl.LightningModule):
 
     def configure_optimizers(self):
         # optimizer = Adafactor(self.parameters())
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return optimizer
 
 
 class SigLIPLoss(torch.nn.Module):
     """WARNING: WIP"""
+
     def __init__(self, logit_scale: torch.tensor, logit_bias: torch.tensor):
         super().__init__()
         # Ideally, these parameters should be initialized to the same

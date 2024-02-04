@@ -16,6 +16,8 @@ BASE_MODEL = "google/siglip-base-patch16-224"
 BATCH_SIZE = 128
 NUM_WORKERS = 16
 SEED = 42
+LR = 1e-4
+
 
 def load_and_preprocess_data():
     conversions = pd.read_csv("./data/unsplash-research-dataset-lite-latest/conversions.tsv000", sep='\t', header=0)
@@ -56,7 +58,7 @@ def main():
 
     # Train
     model = AutoModel.from_pretrained(BASE_MODEL)
-    lightning_model = LightningImageSearchSigLIP(model=model)
+    lightning_model = LightningImageSearchSigLIP(model=model, lr=LR)
 
     logger = pl.loggers.MLFlowLogger(experiment_name="ImageSearch")
 

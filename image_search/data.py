@@ -1,11 +1,12 @@
 from pathlib import Path
 
 import pandas as pd
+import torch
 from datasets import Dataset
 from PIL import Image
 
 
-class ConversionsDataset:
+class ConversionsDataset(torch.utils.data.Dataset):
     def __init__(self, data: pd.DataFrame, image_folder: Path):
         self.dataset = Dataset.from_pandas(data[["keyword", "photo_id"]])
         self.images_folder = image_folder
