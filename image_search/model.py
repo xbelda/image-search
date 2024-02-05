@@ -29,7 +29,7 @@ class LightningImageSearchSigLIP(pl.LightningModule):
 
         loss, recall = self._basic_step(input_ids, pixel_values)
         self.log("Loss/Train", loss)
-        self.log("InBatchRecall@1/Train", recall)
+        self.log("InBatchRecallAt1/Train", recall)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -38,7 +38,7 @@ class LightningImageSearchSigLIP(pl.LightningModule):
 
         loss, recall = self._basic_step(input_ids, pixel_values)
         self.log("Loss/Val", loss)
-        self.log("InBatchRecall@1/Val", recall)
+        self.log("InBatchRecallAt1/Val", recall)
         return loss
 
     def configure_optimizers(self):
