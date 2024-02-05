@@ -19,7 +19,7 @@ class LightningImageSearchSigLIP(pl.LightningModule):
         targets = (2 * torch.eye(batch_size) - torch.ones(batch_size))
         targets = targets.to(logits_per_image.device)
 
-        loss = -(logits_per_image * targets).sigmoid().log().sum(dim=1).mean()
+        loss = siglip_loss(logits=logits_per_image, targets=targets)
         recall = in_batch_recall_at_1(logits_per_image, targets)
         return loss, recall
 
@@ -46,20 +46,5 @@ class LightningImageSearchSigLIP(pl.LightningModule):
         return optimizer
 
 
-class SigLIPLoss(torch.nn.Module):
-    """WARNING: WIP"""
-
-    def __init__(self, logit_scale: torch.tensor, logit_bias: torch.tensor):
-        super().__init__()
-        # Ideally, these parameters should be initialized to the same
-        self.logit_scale = torch.nn.Parameter(logit_scale)
-        self.logit_bias = torch.nn.Parameter(logit_bias)
-
-    def forward(self, img_emb, txt_emb, target):
-        raise NotImplementedError
-        # batch_size = img_emb.shape[0]
-        #
-        # logits = img_emb @ txt_emb.T * self.logit_scale.exp() + self.logit_bias
-        # loss = - (1 / batch_size) * (logits * target).sigmoid().log()
-        #
-        # return loss.sum(0).mean()
+def siglip_loss(logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+    return -(logits * targets).sigmoid().log().sum(dim=1).mean()
