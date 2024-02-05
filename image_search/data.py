@@ -49,9 +49,10 @@ class ImagesDataset(torch.utils.data.Dataset):
 
 
 class ConversionsDataset(torch.utils.data.Dataset):
-    def __init__(self, data: pd.DataFrame, image_folder: Path):
+    def __init__(self, data: pd.DataFrame, image_folder: Path, processor: SiglipProcessor):
         self.dataset = Dataset.from_pandas(data[["keyword", "photo_id"]])
         self.images_folder = image_folder
+        self.processor = processor
 
     def get_image_path(self, photo_id):
         return (self.images_folder / photo_id).with_suffix(".jpg")
@@ -65,22 +66,11 @@ class ConversionsDataset(torch.utils.data.Dataset):
         keyword = example["keyword"]
 
         image_path = self.get_image_path(example["photo_id"])
-        image = Image.open(image_path).convert(
-            'RGB')  # Note: Conversion to RGB format is crucial to avoid issues with JPG/PNG format
+        image = Image.open(image_path).convert('RGB')  # Convert to RGB format is crucial to avoid issues PNG format
 
-        return {"keyword": keyword, "image": image}
+        inputs = self.processor(text=keyword, images=image, padding="max_length", truncation=True, return_tensors="pt")
 
-
-class SigLIPCollator:
-    def __init__(self, processor):
-        self.processor = processor
-
-    def __call__(self, examples):
-        keywords = [example["keyword"] for example in examples]
-        images = [example["image"] for example in examples]
-
-        # Important: we pass `padding=max_length` since the model was trained with this.
-        # Changing it might lead to unexpected behavior
-        inputs = self.processor(text=keywords, images=images, padding="max_length", truncation=True,
-                                return_tensors="pt")
-        return inputs
+        return {
+            "input_ids": inputs["input_ids"].squeeze(),
+            "pixel_values": inputs["pixel_values"].squeeze()
+        }

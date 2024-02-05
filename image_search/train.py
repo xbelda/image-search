@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 from transformers import AutoProcessor, AutoModel
 
-from image_search.data import ConversionsDataset, SigLIPCollator
+from image_search.data import ConversionsDataset
 from image_search.model import LightningImageSearchSigLIP
 
 # CONSTANTS
@@ -48,13 +48,12 @@ def main():
 
     # Dataset
     processor = AutoProcessor.from_pretrained(BASE_MODEL)
-    collator = SigLIPCollator(processor=processor)
 
-    dataset_train = ConversionsDataset(data=conversions_train, image_folder=IMAGES_FOLDER)
-    dataset_val = ConversionsDataset(data=conversions_val, image_folder=IMAGES_FOLDER)
+    dataset_train = ConversionsDataset(data=conversions_train, image_folder=IMAGES_FOLDER, processor=processor)
+    dataset_val = ConversionsDataset(data=conversions_val, image_folder=IMAGES_FOLDER, processor=processor)
 
-    dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, collate_fn=collator)
-    dataloader_val = DataLoader(dataset_val, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, collate_fn=collator)
+    dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
+    dataloader_val = DataLoader(dataset_val, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
 
     # Train
     model = AutoModel.from_pretrained(BASE_MODEL)
