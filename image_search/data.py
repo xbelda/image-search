@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Dict
 
 import pandas as pd
 import torch
@@ -18,7 +19,7 @@ class ImagesDataset(torch.utils.data.Dataset):
         self.images_folder = image_folder
         self.processor = processor
 
-        self.image_paths = sorted(image_folder.glob('*.jpg'))
+        self.image_paths = sorted(image_folder.glob('*.jpg'))  # Sort paths for reproducibility (TODO: refactor this)
         self.names = [path.stem for path in self.image_paths]
 
         self.ids_name = dict(enumerate(self.names))
@@ -33,29 +34,26 @@ class ImagesDataset(torch.utils.data.Dataset):
     def __len__(self) -> int:
         return len(self.image_paths)
 
-    def __getitem__(self, idx):
-        name = self.names[idx]
+    def __getitem__(self, idx: int) -> Dict[str, int | torch.Tensor]:
         image_path = self.image_paths[idx]
-
-        idx = self.name_to_id(name)
 
         image = Image.open(image_path).convert("RGB")
         inputs = self.processor.image_processor(image, return_tensors="pt")
 
         return {
-            "photo_id": idx,
+            "id": idx,
             "pixel_values": inputs.pixel_values.squeeze()
         }
 
 
 class ConversionsDataset(torch.utils.data.Dataset):
-    def __init__(self, data: pd.DataFrame, image_folder: Path, processor: SiglipProcessor):
+    def __init__(self,
+                 data: pd.DataFrame,
+                 image_dataset: ImagesDataset,
+                 processor: SiglipProcessor):
         self.dataset = Dataset.from_pandas(data[["keyword", "photo_id"]])
-        self.images_folder = image_folder
+        self.image_dataset = image_dataset
         self.processor = processor
-
-    def get_image_path(self, photo_id):
-        return (self.images_folder / photo_id).with_suffix(".jpg")
 
     def __len__(self) -> int:
         return len(self.dataset)
@@ -64,13 +62,19 @@ class ConversionsDataset(torch.utils.data.Dataset):
         example = self.dataset[idx]
 
         keyword = example["keyword"]
+        photo_id = example["photo_id"]
 
-        image_path = self.get_image_path(example["photo_id"])
-        image = Image.open(image_path).convert('RGB')  # Convert to RGB format is crucial to avoid issues PNG format
+        image_id = self.image_dataset.name_to_id(photo_id)
+        image_data = self.image_dataset[image_id]
 
-        inputs = self.processor(text=keyword, images=image, padding="max_length", truncation=True, return_tensors="pt")
+        ids = image_data["id"]
+        pixel_values = image_data["pixel_values"].squeeze()
+
+        text_inputs = self.processor.tokenizer(text=keyword, padding="max_length", truncation=True, return_tensors="pt")
+        input_ids = text_inputs["input_ids"].squeeze()
 
         return {
-            "input_ids": inputs["input_ids"].squeeze(),
-            "pixel_values": inputs["pixel_values"].squeeze()
+            "ids": ids,
+            "input_ids": input_ids,
+            "pixel_values": pixel_values
         }

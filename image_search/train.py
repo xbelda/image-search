@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 from transformers import AutoProcessor, AutoModel
 
-from image_search.data import ConversionsDataset
+from image_search.data import ConversionsDataset, ImagesDataset
 from image_search.model import LightningImageSearchSigLIP
 
 # CONSTANTS
@@ -49,8 +49,9 @@ def main():
     # Dataset
     processor = AutoProcessor.from_pretrained(BASE_MODEL)
 
-    dataset_train = ConversionsDataset(data=conversions_train, image_folder=IMAGES_FOLDER, processor=processor)
-    dataset_val = ConversionsDataset(data=conversions_val, image_folder=IMAGES_FOLDER, processor=processor)
+    image_dataset = ImagesDataset(image_folder=IMAGES_FOLDER, processor=processor)
+    dataset_train = ConversionsDataset(data=conversions_train, image_dataset=image_dataset, processor=processor)
+    dataset_val = ConversionsDataset(data=conversions_val, image_dataset=image_dataset, processor=processor)
 
     dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
     dataloader_val = DataLoader(dataset_val, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
