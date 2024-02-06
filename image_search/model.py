@@ -14,12 +14,12 @@ class QueryModel(torch.nn.Module):
     def forward(self, input_ids: torch.Tensor) -> torch.Tensor:
         text_outputs = self.text_model(input_ids=input_ids, return_dict=True)
 
-        text_embeddings = text_outputs.pooler_output
+        query_embeddings = text_outputs.pooler_output
 
         # normalized features
-        text_embeddings = F.normalize(text_embeddings)
+        query_embeddings = F.normalize(query_embeddings)
 
-        return text_embeddings
+        return query_embeddings
 
 
 class ImageModel(torch.nn.Module):
