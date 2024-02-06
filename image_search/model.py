@@ -55,12 +55,15 @@ class LightningImageSearchSigLIP(pl.LightningModule):
         image_embeddings = self.image_model(pixel_values)
 
         # cosine similarity as logits
-        logits_per_query = torch.matmul(query_embeddings,
-                                        image_embeddings.t()) * self.logit_scale.exp() + self.logit_bias
+        logits_per_query = (
+            torch.matmul(query_embeddings, image_embeddings.t())
+            * self.logit_scale.exp()
+            + self.logit_bias
+        )
         logits_per_query = logits_per_query.t()
 
         batch_size = logits_per_query.shape[0]
-        targets = (2 * torch.eye(batch_size) - torch.ones(batch_size))
+        targets = 2 * torch.eye(batch_size) - torch.ones(batch_size)
         targets = targets.to(logits_per_query.device)
 
         loss = siglip_loss(logits=logits_per_query, targets=targets)
