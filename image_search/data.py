@@ -58,7 +58,7 @@ class ConversionsDataset(torch.utils.data.Dataset):
         image_dataset: ImagesDataset,
         processor: SiglipProcessor,
     ):
-        self.dataset = Dataset.from_pandas(data[["keyword", "photo_id"]])
+        self.dataset = Dataset.from_pandas(data[["keyword", "photo_id", "conversion_country"]])
         self.image_dataset = image_dataset
         self.processor = processor
 
@@ -70,15 +70,22 @@ class ConversionsDataset(torch.utils.data.Dataset):
 
         keyword = example["keyword"]
         photo_id = example["photo_id"]
+        country = example["conversion_country"]
+
+        # The simplest way to add the country is to add it to the textual model
+        # It is also possible to add it as an additional embedding
+        text = f"{country}: {keyword}"
 
         image_id = self.image_dataset.name_to_id(photo_id)
         image_data = self.image_dataset[image_id]
+
+        # TODO: Add image augmentation
 
         ids = image_data["id"]
         pixel_values = image_data["pixel_values"].squeeze()
 
         text_inputs = self.processor.tokenizer(
-            text=keyword, padding="max_length", truncation=True, return_tensors="pt"
+            text=text, padding="max_length", truncation=True, return_tensors="pt"
         )
         input_ids = text_inputs["input_ids"].squeeze()
 
