@@ -41,6 +41,7 @@ class ImageModel(torch.nn.Module):
 class LightningImageSearchSigLIP(pl.LightningModule):
     def __init__(self, model: SiglipModel, lr: float):
         super().__init__()
+        self.save_hyperparameters(ignore=["model"])
 
         self.query_model = QueryModel(model)
         self.image_model = ImageModel(model)
