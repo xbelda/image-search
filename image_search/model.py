@@ -1,33 +1,77 @@
 import pytorch_lightning as pl
 import torch
+import torch.nn.functional as F
 
 from image_search.metrics import in_batch_recall_at_1
 from transformers import SiglipModel
 
 
+class QueryModel(torch.nn.Module):
+    def __init__(self, model: SiglipModel):
+        super().__init__()
+        self.text_model = model.text_model
+
+    def forward(self, input_ids: torch.Tensor) -> torch.Tensor:
+        text_outputs = self.text_model(input_ids=input_ids, return_dict=True)
+
+        text_embeddings = text_outputs.pooler_output
+
+        # normalized features
+        text_embeddings = F.normalize(text_embeddings)
+
+        return text_embeddings
+
+
+class ImageModel(torch.nn.Module):
+    def __init__(self, model: SiglipModel):
+        super().__init__()
+        self.vision_model = model.vision_model
+
+    def forward(self, pixel_values: torch.Tensor) -> torch.Tensor:
+        image_output = self.vision_model(pixel_values=pixel_values, return_dict=True)
+
+        image_embeddings = image_output.pooler_output
+
+        # normalized features
+        image_embeddings = F.normalize(image_embeddings)
+
+        return image_embeddings
+
+
 class LightningImageSearchSigLIP(pl.LightningModule):
     def __init__(self, model: SiglipModel, lr: float):
         super().__init__()
-        self.model = model
+
+        self.query_model = QueryModel(model)
+        self.image_model = ImageModel(model)
+
+        self.logit_scale = model.logit_scale
+        self.logit_bias = model.logit_bias
+
         self.lr = lr
 
-    def _basic_step(self, input_ids, pixel_values):
-        outputs = self.model(input_ids=input_ids, pixel_values=pixel_values)
-        logits_per_image = outputs.logits_per_image
+    def _base_step(self, input_ids, pixel_values):
+        query_embeddings = self.query_model(input_ids)
+        image_embeddings = self.image_model(pixel_values)
 
-        batch_size = logits_per_image.shape[0]
+        # cosine similarity as logits
+        logits_per_query = torch.matmul(query_embeddings,
+                                        image_embeddings.t()) * self.logit_scale.exp() + self.logit_bias
+        logits_per_query = logits_per_query.t()
+
+        batch_size = logits_per_query.shape[0]
         targets = (2 * torch.eye(batch_size) - torch.ones(batch_size))
-        targets = targets.to(logits_per_image.device)
+        targets = targets.to(logits_per_query.device)
 
-        loss = siglip_loss(logits=logits_per_image, targets=targets)
-        recall = in_batch_recall_at_1(logits_per_image, targets)
+        loss = siglip_loss(logits=logits_per_query, targets=targets)
+        recall = in_batch_recall_at_1(logits_per_query, targets)
         return loss, recall
 
     def training_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         pixel_values = batch["pixel_values"]
 
-        loss, recall = self._basic_step(input_ids, pixel_values)
+        loss, recall = self._base_step(input_ids, pixel_values)
         self.log("Loss/Train", loss)
         self.log("InBatchRecallAt1/Train", recall)
         return loss
@@ -36,7 +80,7 @@ class LightningImageSearchSigLIP(pl.LightningModule):
         input_ids = batch["input_ids"]
         pixel_values = batch["pixel_values"]
 
-        loss, recall = self._basic_step(input_ids, pixel_values)
+        loss, recall = self._base_step(input_ids, pixel_values)
         self.log("Loss/Val", loss)
         self.log("InBatchRecallAt1/Val", recall)
         return loss
