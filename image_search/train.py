@@ -20,7 +20,10 @@ LR = 1e-4
 NUM_EPOCHS = 1
 
 
-def load_and_preprocess_data():
+def load_and_preprocess_data() -> pd.DataFrame:
+    """
+    Reads the conversion dataset and sorts it temporally.
+    """
     conversions = pd.read_csv(
         "./data/unsplash-research-dataset-lite-latest/conversions.tsv000",
         sep="\t",
@@ -37,9 +40,16 @@ def load_and_preprocess_data():
 def temporal_train_test_split(
     conversions: pd.DataFrame,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """Temporally splits the dataset in Train/Test
+    """
+    Temporally splits the dataset in Train/Test
     This is one of the best approaches, since it allows us to measure more how the model would work under a more
     "realistic" scenario. That is, training a model on previous data and seeing how it evolves in the future.
+
+    Args:
+        conversions:
+
+    Returns:
+
     """
     num_examples = len(conversions)
     conversions_train = conversions[: int(num_examples * 0.8)]
@@ -80,7 +90,10 @@ def main():
     logger = pl.loggers.MLFlowLogger(experiment_name="ImageSearch")
 
     trainer = pl.Trainer(
-        logger=logger, max_epochs=NUM_EPOCHS, precision="bf16-mixed", log_every_n_steps=20
+        logger=logger,
+        max_epochs=NUM_EPOCHS,
+        precision="bf16-mixed",
+        log_every_n_steps=20,
     )
     trainer.fit(lightning_model, dataloader_train, dataloader_val)
 

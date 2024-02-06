@@ -3,7 +3,9 @@ import torch
 from typing import List, Dict
 
 
-def in_batch_recall_at_1(predictions: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+def in_batch_recall_at_1(
+    predictions: torch.Tensor, targets: torch.Tensor
+) -> torch.Tensor:
     """
     Computes the recall at 1 metric for a batch of predictions.
     Args:
@@ -19,7 +21,9 @@ def in_batch_recall_at_1(predictions: torch.Tensor, targets: torch.Tensor) -> to
     return (predicted_ids == expected_ids).to(torch.float).mean()
 
 
-def hit_rate(true_ids: np.ndarray, predicted_ids: np.ndarray, k: int | List[int]) -> Dict[int, float]:
+def hit_rate(
+    true_ids: np.ndarray, predicted_ids: np.ndarray, k: int | List[int]
+) -> Dict[int, float]:
     """
     Computes the hit rate of a batch of predictions for different values of k.
 
