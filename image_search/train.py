@@ -17,6 +17,7 @@ BATCH_SIZE = 128
 NUM_WORKERS = 16
 SEED = 42
 LR = 1e-4
+NUM_EPOCHS = 1
 
 
 def load_and_preprocess_data():
@@ -79,7 +80,7 @@ def main():
     logger = pl.loggers.MLFlowLogger(experiment_name="ImageSearch")
 
     trainer = pl.Trainer(
-        logger=logger, max_epochs=2, precision="bf16-mixed", log_every_n_steps=20
+        logger=logger, max_epochs=NUM_EPOCHS, precision="bf16-mixed", log_every_n_steps=20
     )
     trainer.fit(lightning_model, dataloader_train, dataloader_val)
 
