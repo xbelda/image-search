@@ -1,3 +1,4 @@
+from functools import cache
 from pathlib import Path
 from typing import Dict
 
@@ -36,11 +37,16 @@ class ImagesDataset(torch.utils.data.Dataset):
     def __len__(self) -> int:
         return len(self.image_paths)
 
+    @cache
+    def _load_image(self, image_path):
+        image = Image.open(image_path).convert("RGB")
+        inputs = self.processor.image_processor(image, return_tensors="pt")
+        return inputs
+
     def __getitem__(self, idx: int) -> Dict[str, int | torch.Tensor]:
         image_path = self.image_paths[idx]
 
-        image = Image.open(image_path).convert("RGB")
-        inputs = self.processor.image_processor(image, return_tensors="pt")
+        inputs = self._load_image(image_path)
 
         return {"id": idx, "pixel_values": inputs.pixel_values.squeeze()}
 
