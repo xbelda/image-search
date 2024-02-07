@@ -15,7 +15,7 @@ from image_search.preprocessing import KeywordProcessor
 IMAGES_FOLDER = Path("./data/unsplash-research-dataset-lite-latest/photos/")
 BASE_MODEL = "google/siglip-base-patch16-224"
 BATCH_SIZE = 128
-NUM_WORKERS = 16
+NUM_WORKERS = 4
 SEED = 42
 LR = 1e-4
 NUM_EPOCHS = 1
@@ -66,7 +66,6 @@ def main():
     conversions = pd.read_parquet("./data/clean/conversions.parquet")
     conversions_train, conversions_val = temporal_train_test_split(conversions)
 
-    # Dataset
     df_keywords = pd.read_csv(
         "./data/unsplash-research-dataset-lite-latest/keywords.tsv000", sep="\t"
     )
@@ -74,9 +73,10 @@ def main():
     keyword_processor = KeywordProcessor()
     df_keywords = keyword_processor.process(df_keywords)
 
+    print("Loading processor")
     processor = AutoProcessor.from_pretrained(BASE_MODEL)
 
-    image_dataset = ImagesDataset(image_folder=IMAGES_FOLDER, processor=processor)
+    print("Generating datasets")
     image_dataset = ImagesDataset(
         processor=processor, image_folder=IMAGES_FOLDER, keywords=df_keywords
     )
