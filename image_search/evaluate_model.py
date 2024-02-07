@@ -94,7 +94,6 @@ def get_index(image_dataloader: DataLoader,
 
     Returns:
         faiss.IndexFlatL2: A Faiss index containing the embeddings of the images.
-
 """
     embedding_dim = image_model.vision_model.config.hidden_size
     index = faiss.IndexFlatL2(embedding_dim)
@@ -172,7 +171,6 @@ def main():
     logging.info("Generating query recommendations")
     predicted_ids, true_ids = generate_query_recommendations(query_model, dataloader_val, index, accelerator)
 
-    logging.info("Evaluating metrics")
     k = [1, 5, 10, 25]
 
     hit_rate_score = hit_rate(true_ids, predicted_ids, k=k)
@@ -183,8 +181,9 @@ def main():
         "mAP": map_score,
     })
     scores.index.name = "k"
-    print(scores)
+    logging.info(scores)
 
+    logging.info(f"Saving metrics to {OUTPUT_PATH}")
     scores.to_csv(OUTPUT_PATH)
 
 
