@@ -23,19 +23,29 @@ class QueryModel(torch.nn.Module):
 
 
 class ImageModel(torch.nn.Module):
-    def __init__(self, model: SiglipModel):
+    def __init__(
+        self,
+        model: SiglipModel,
+    ):
         super().__init__()
         self.vision_model = model.vision_model
+        self.tag_embeddings = torch.nn.EmbeddingBag(
+            num_embeddings=5_000,  # It should be less TODO: Refactor and pass
+            embedding_dim=model.vision_model.config.hidden_size,
+            padding_idx=0,
+        )
 
-    def forward(self, pixel_values: torch.Tensor) -> torch.Tensor:
+    def forward(self, pixel_values: torch.Tensor, tags: torch.Tensor) -> torch.Tensor:
         image_output = self.vision_model(pixel_values=pixel_values, return_dict=True)
-
         image_embeddings = image_output.pooler_output
 
-        # normalized features
-        image_embeddings = F.normalize(image_embeddings)
+        tag_embeddings = self.tag_embeddings(tags)
+        embeddings = image_embeddings + tag_embeddings
 
-        return image_embeddings
+        # normalized features
+        embeddings = F.normalize(embeddings)
+
+        return embeddings
 
 
 class LightningImageSearchSigLIP(pl.LightningModule):
@@ -51,9 +61,9 @@ class LightningImageSearchSigLIP(pl.LightningModule):
 
         self.lr = lr
 
-    def _base_step(self, input_ids, pixel_values):
+    def _base_step(self, input_ids, pixel_values, tags):
         query_embeddings = self.query_model(input_ids)
-        image_embeddings = self.image_model(pixel_values)
+        image_embeddings = self.image_model(pixel_values, tags)
 
         # cosine similarity as logits
         logits_per_query = (
@@ -74,8 +84,9 @@ class LightningImageSearchSigLIP(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         pixel_values = batch["pixel_values"]
+        tags = batch["tags"]
 
-        loss, recall = self._base_step(input_ids, pixel_values)
+        loss, recall = self._base_step(input_ids, pixel_values, tags)
         self.log("Loss/Train", loss)
         self.log("InBatchRecallAt1/Train", recall)
         return loss
@@ -83,8 +94,9 @@ class LightningImageSearchSigLIP(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         pixel_values = batch["pixel_values"]
+        tags = batch["tags"]
 
-        loss, recall = self._base_step(input_ids, pixel_values)
+        loss, recall = self._base_step(input_ids, pixel_values, tags)
         self.log("Loss/Val", loss)
         self.log("InBatchRecallAt1/Val", recall)
         return loss

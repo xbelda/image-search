@@ -7,8 +7,9 @@ import torch
 from torch.utils.data import DataLoader
 from transformers import AutoProcessor, AutoModel
 
-from image_search.data import ConversionsDataset, ImagesDataset
+from image_search.data import ConversionsDataset, ImagesDataset, collate_tags
 from image_search.model import LightningImageSearchSigLIP
+from image_search.preprocessing import KeywordProcessor
 
 # CONSTANTS
 IMAGES_FOLDER = Path("./data/unsplash-research-dataset-lite-latest/photos/")
@@ -66,9 +67,21 @@ def main():
     conversions_train, conversions_val = temporal_train_test_split(conversions)
 
     # Dataset
+    df_keywords = pd.read_csv(
+        "./data/unsplash-research-dataset-lite-latest/keywords.tsv000", sep="\t"
+    )
+
+    keyword_processor = KeywordProcessor()
+    df_keywords = keyword_processor.process(df_keywords)
+
     processor = AutoProcessor.from_pretrained(BASE_MODEL)
 
     image_dataset = ImagesDataset(image_folder=IMAGES_FOLDER, processor=processor)
+    image_dataset = ImagesDataset(
+        processor=processor, image_folder=IMAGES_FOLDER, keywords=df_keywords
+    )
+    image_dataset.pre_cache_images()
+
     dataset_train = ConversionsDataset(
         data=conversions_train, image_dataset=image_dataset, processor=processor
     )
@@ -77,10 +90,16 @@ def main():
     )
 
     dataloader_train = DataLoader(
-        dataset_train, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS
+        dataset_train,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        collate_fn=collate_tags,
     )
     dataloader_val = DataLoader(
-        dataset_val, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS
+        dataset_val,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        collate_fn=collate_tags,
     )
 
     # Train
