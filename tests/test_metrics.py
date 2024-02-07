@@ -1,7 +1,11 @@
 import numpy as np
 import pytest
 
-from image_search.metrics import hit_rate, mean_average_precision, mean_average_precision_at_k
+from image_search.metrics import (
+    hit_rate,
+    mean_average_precision,
+    mean_average_precision_at_k,
+)
 
 
 class TestHitRate:
@@ -56,13 +60,15 @@ class TestMeanAveragePrecision:
             (np.array([[2]]), np.array([[1, 2, 3]]), 0.5),
             (np.array([[4]]), np.array([[1, 2, 3]]), 0.0),
             (
-                    np.array([[1, 2, 3]]),
-                    np.array([
+                np.array([[1, 2, 3]]),
+                np.array(
+                    [
                         [1, 2, 3, 4, 5],
                         [1, 2, 10, 11, 12],
                         [6, 7, 8, 9, 10],
-                    ]),
-                    0.5  # (1+0.5+0) / 3
+                    ]
+                ),
+                0.5,  # (1+0.5+0) / 3
             ),
         ],
         ids=[
@@ -70,7 +76,7 @@ class TestMeanAveragePrecision:
             "Match in second position",
             "No match",
             "Complex matches",
-        ]
+        ],
     )
     def test_simple_examples_return_expected(self, true_ids, predicted_ids, expected):
         actual = mean_average_precision(true_ids=true_ids, predicted_ids=predicted_ids)
@@ -81,15 +87,19 @@ class TestMeanAveragePrecision:
 class TestMeanAveragePrecisionAtK:
     def test_simple_examples_return_expected(self):
         true_ids = np.array([[1, 2, 3, 4]])
-        predicted_ids = np.array([
-            [1, 2, 3, 4, 5],
-            [1, 2, 10, 11, 12],
-            [6, 7, 8, 9, 10],
-            [6, 7, 8, 4, 10],
-        ])
+        predicted_ids = np.array(
+            [
+                [1, 2, 3, 4, 5],
+                [1, 2, 10, 11, 12],
+                [6, 7, 8, 9, 10],
+                [6, 7, 8, 4, 10],
+            ]
+        )
 
         k = [1, 2, 5]
-        actual = mean_average_precision_at_k(true_ids=true_ids, predicted_ids=predicted_ids, k=k)
+        actual = mean_average_precision_at_k(
+            true_ids=true_ids, predicted_ids=predicted_ids, k=k
+        )
         expected = {1: 1 / 4, 2: (1 + 0.5) / 4, 5: (1.0 + 0.5 + 0.25) / 4}
 
         for current_k in k:

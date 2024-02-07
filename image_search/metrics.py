@@ -4,7 +4,7 @@ from typing import List, Dict
 
 
 def in_batch_recall_at_1(
-        predictions: torch.Tensor, targets: torch.Tensor
+    predictions: torch.Tensor, targets: torch.Tensor
 ) -> torch.Tensor:
     """
     Computes the recall at 1 metric for a batch of predictions.
@@ -22,7 +22,7 @@ def in_batch_recall_at_1(
 
 
 def hit_rate(
-        true_ids: np.ndarray, predicted_ids: np.ndarray, k: int | List[int]
+    true_ids: np.ndarray, predicted_ids: np.ndarray, k: int | List[int]
 ) -> Dict[int, float]:
     """
     Computes the hit rate of a batch of predictions for different values of k.
@@ -73,7 +73,9 @@ def mean_average_precision(true_ids: np.ndarray, predicted_ids: np.ndarray) -> f
     return _average_precision.mean()
 
 
-def mean_average_precision_at_k(true_ids: np.ndarray, predicted_ids: np.ndarray, k: int | List[int]) -> Dict[int, float]:
+def mean_average_precision_at_k(
+    true_ids: np.ndarray, predicted_ids: np.ndarray, k: int | List[int]
+) -> Dict[int, float]:
     """
     Computes the average precision of a batch of predictions for different values of k.
     Args:
