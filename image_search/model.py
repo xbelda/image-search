@@ -1,9 +1,9 @@
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
+from transformers import SiglipModel
 
 from image_search.metrics import in_batch_recall_at_1
-from transformers import SiglipModel
 
 
 class QueryModel(torch.nn.Module):

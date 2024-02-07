@@ -1,6 +1,7 @@
+from typing import List, Dict
+
 import numpy as np
 import torch
-from typing import List, Dict
 
 
 def in_batch_recall_at_1(

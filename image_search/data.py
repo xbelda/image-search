@@ -4,10 +4,10 @@ from typing import Dict, List
 
 import pandas as pd
 import torch
-from datasets import Dataset
 from PIL import Image
-from transformers import SiglipProcessor
+from datasets import Dataset
 from tqdm import tqdm
+from transformers import SiglipProcessor
 
 
 class ImagesDataset(torch.utils.data.Dataset):
