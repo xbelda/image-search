@@ -1,5 +1,5 @@
+import logging
 from pathlib import Path
-from typing import Tuple
 
 import pandas as pd
 import pytorch_lightning as pl
@@ -9,7 +9,14 @@ from transformers import AutoProcessor, AutoModel
 
 from image_search.data import ConversionsDataset, ImagesDataset, collate_tags
 from image_search.model import LightningImageSearchSigLIP
-from image_search.preprocessing import KeywordProcessor
+from image_search.preprocessing import KeywordProcessor, temporal_train_test_split
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    filename='example.log',
+    filemode='a'
+)
 
 # CONSTANTS
 IMAGES_FOLDER = Path("./data/unsplash-research-dataset-lite-latest/photos/")
@@ -22,48 +29,11 @@ NUM_EPOCHS = 1
 RUN_NAME = "COUNTRY+EMBEDDINGS"
 
 
-def load_and_preprocess_data() -> pd.DataFrame:
-    """
-    Reads the conversion dataset and sorts it temporally.
-    """
-    conversions = pd.read_csv(
-        "./data/unsplash-research-dataset-lite-latest/conversions.tsv000",
-        sep="\t",
-        header=0,
-    )
-    conversions["converted_at"] = pd.to_datetime(
-        conversions["converted_at"], format="ISO8601"
-    )
-    # Sort by conversion datetime
-    conversions = conversions.sort_values("converted_at", ignore_index=True)
-    return conversions
-
-
-def temporal_train_test_split(
-    conversions: pd.DataFrame,
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Temporally splits the dataset in Train/Test
-    This is one of the best approaches, since it allows us to measure more how the model would work under a more
-    "realistic" scenario. That is, training a model on previous data and seeing how it evolves in the future.
-
-    Args:
-        conversions:
-
-    Returns:
-
-    """
-    num_examples = len(conversions)
-    conversions_train = conversions[: int(num_examples * 0.8)]
-    conversions_val = conversions[int(num_examples * 0.8) :]
-    return conversions_train, conversions_val
-
-
 def main():
     torch.set_float32_matmul_precision("medium")  # Improves speed using tensor cores
     pl.seed_everything(SEED)
 
-    print("Loading data")
+    logging.info("Loading data")
     # conversions = load_and_preprocess_data()
     conversions = pd.read_parquet("./data/clean/conversions.parquet")
     conversions_train, conversions_val = temporal_train_test_split(conversions)
