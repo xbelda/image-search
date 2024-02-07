@@ -14,7 +14,7 @@ pip install -r requirements.txt
 ```
 
 # Download the data
-Go to [notebooks/2.-analysis.ipynb](notebooks/2.-analysis.ipynb) and select `run all`.
+Go to [notebooks/1.-download-unsplash-dataset.ipynb](notebooks/1.-download-unsplash-dataset.ipynb) and select `run all`.
 
 # Analysis and discussion
 For details about the implementation and results, refer to the [Report](docs/report.md) file.
