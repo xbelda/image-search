@@ -19,6 +19,7 @@ NUM_WORKERS = 4
 SEED = 42
 LR = 1e-4
 NUM_EPOCHS = 1
+RUN_NAME = "COUNTRY+EMBEDDINGS"
 
 
 def load_and_preprocess_data() -> pd.DataFrame:
@@ -62,6 +63,7 @@ def main():
     torch.set_float32_matmul_precision("medium")  # Improves speed using tensor cores
     pl.seed_everything(SEED)
 
+    print("Loading data")
     # conversions = load_and_preprocess_data()
     conversions = pd.read_parquet("./data/clean/conversions.parquet")
     conversions_train, conversions_val = temporal_train_test_split(conversions)
@@ -102,11 +104,11 @@ def main():
         collate_fn=collate_tags,
     )
 
-    # Train
+    print("Setting up model")
     model = AutoModel.from_pretrained(BASE_MODEL)
     lightning_model = LightningImageSearchSigLIP(model=model, lr=LR)
 
-    logger = pl.loggers.MLFlowLogger(experiment_name="ImageSearch")
+    logger = pl.loggers.MLFlowLogger(experiment_name="ImageSearch", run_name=RUN_NAME)
 
     trainer = pl.Trainer(
         logger=logger,
