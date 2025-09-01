@@ -13,13 +13,17 @@ from transformers import AutoModel, AutoProcessor
 from image_search.data import ImagesDataset, ConversionsDataset, collate_tags
 from image_search.metrics import hit_rate, mean_average_precision_at_k
 from image_search.model import LightningImageSearchSigLIP, ImageModel, QueryModel
-from image_search.preprocessing import KeywordProcessor, temporal_train_test_split, load_and_preprocess_data
+from image_search.preprocessing import (
+    KeywordProcessor,
+    temporal_train_test_split,
+    load_and_preprocess_data,
+)
 
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    filename='example.log',
-    filemode='a'
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    filename="example.log",
+    filemode="a",
 )
 
 # CONFIG
@@ -54,12 +58,16 @@ def load_models(accelerator):
     model = AutoModel.from_pretrained(BASE_MODEL).to(accelerator.device)
 
     if CHECKPOINT_PATH is not None:
-        lightning_model = LightningImageSearchSigLIP.load_from_checkpoint(CHECKPOINT_PATH, model=model, lr=1e-4)
+        lightning_model = LightningImageSearchSigLIP.load_from_checkpoint(
+            CHECKPOINT_PATH, model=model, lr=1e-4
+        )
     else:
         # In case we want to load the vanilla model directly
         lightning_model = LightningImageSearchSigLIP(model=model, lr=1e-4)
 
-    lightning_model = lightning_model.to(device=accelerator.device, dtype=accelerator.dtype)
+    lightning_model = lightning_model.to(
+        device=accelerator.device, dtype=accelerator.dtype
+    )
     image_model = lightning_model.image_model
     query_model = lightning_model.query_model
 
@@ -70,16 +78,24 @@ def load_models(accelerator):
 
 
 def get_image_dataloader(df_keywords: pd.DataFrame, processor) -> DataLoader:
-    image_dataset = ImagesDataset(processor=processor, image_folder=IMAGES_FOLDER, keywords=df_keywords)
+    image_dataset = ImagesDataset(
+        processor=processor, image_folder=IMAGES_FOLDER, keywords=df_keywords
+    )
     image_dataset.pre_cache_images()
-    image_dataloader = torch.utils.data.DataLoader(image_dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS,
-                                                   collate_fn=collate_tags)
+    image_dataloader = torch.utils.data.DataLoader(
+        image_dataset,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        collate_fn=collate_tags,
+    )
     return image_dataloader
 
 
-def get_index(image_dataloader: DataLoader,
-              image_model: ImageModel,
-              accelerator: AcceleratorConfig) -> faiss.IndexFlatL2:
+def get_index(
+    image_dataloader: DataLoader,
+    image_model: ImageModel,
+    accelerator: AcceleratorConfig,
+) -> faiss.IndexFlatL2:
     """Generate Index for Images using Faiss.
 
     This implementation the [Pinecone guide](https://www.pinecone.io/learn/series/faiss/faiss-tutorial/) for faiss.
@@ -94,31 +110,46 @@ def get_index(image_dataloader: DataLoader,
 
     Returns:
         faiss.IndexFlatL2: A Faiss index containing the embeddings of the images.
-"""
+    """
     embedding_dim = image_model.vision_model.config.hidden_size
     index = faiss.IndexFlatL2(embedding_dim)
     for batch in tqdm(image_dataloader):
-        pixel_values = batch["pixel_values"].to(device=accelerator.device, dtype=accelerator.dtype)
+        pixel_values = batch["pixel_values"].to(
+            device=accelerator.device, dtype=accelerator.dtype
+        )
         tags = batch["tags"].to(device=accelerator.device)
 
         image_embeddings = image_model(pixel_values=pixel_values, tags=tags)
-        image_embeddings = image_embeddings.to(device="cpu", dtype=torch.float32).detach().numpy()
+        image_embeddings = (
+            image_embeddings.to(device="cpu", dtype=torch.float32).detach().numpy()
+        )
 
         index.add(image_embeddings)
     return index
 
 
 def get_conversions_dataloader(conversions_val, df_keywords, processor):
-    image_dataset = ImagesDataset(processor=processor, image_folder=IMAGES_FOLDER, keywords=df_keywords)
-    dataset_val = ConversionsDataset(data=conversions_val, image_dataset=image_dataset, processor=processor)
-    dataloader_val = DataLoader(dataset_val, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, collate_fn=collate_tags)
+    image_dataset = ImagesDataset(
+        processor=processor, image_folder=IMAGES_FOLDER, keywords=df_keywords
+    )
+    dataset_val = ConversionsDataset(
+        data=conversions_val, image_dataset=image_dataset, processor=processor
+    )
+    dataloader_val = DataLoader(
+        dataset_val,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        collate_fn=collate_tags,
+    )
     return dataloader_val
 
 
-def generate_query_recommendations(query_model: QueryModel,
-                                   dataloader_val: DataLoader,
-                                   index: faiss.IndexFlatL2,
-                                   accelerator: AcceleratorConfig) -> [np.ndarray, np.ndarray]:
+def generate_query_recommendations(
+    query_model: QueryModel,
+    dataloader_val: DataLoader,
+    index: faiss.IndexFlatL2,
+    accelerator: AcceleratorConfig,
+) -> [np.ndarray, np.ndarray]:
     true_ids = []
     predicted_ids = []
     for batch in tqdm(dataloader_val):
@@ -126,7 +157,9 @@ def generate_query_recommendations(query_model: QueryModel,
         ids = batch["ids"].unsqueeze(dim=0).numpy()
 
         query_embedding = query_model(input_ids)
-        query_embedding = query_embedding.to(device="cpu", dtype=torch.float32).detach().numpy()
+        query_embedding = (
+            query_embedding.to(device="cpu", dtype=torch.float32).detach().numpy()
+        )
 
         distances, indices = index.search(query_embedding, k=25)
 
@@ -151,7 +184,7 @@ def main():
     image_model, query_model = load_models(accelerator)
 
     logging.info("Loading keywords")
-    df_keywords = pd.read_csv(KEYWORDS_PATH, sep='\t')
+    df_keywords = pd.read_csv(KEYWORDS_PATH, sep="\t")
     keyword_processor = KeywordProcessor()
     df_keywords = keyword_processor.process(df_keywords)
 
@@ -169,17 +202,23 @@ def main():
     dataloader_val = get_conversions_dataloader(conversions_val, df_keywords, processor)
 
     logging.info("Generating query recommendations")
-    predicted_ids, true_ids = generate_query_recommendations(query_model, dataloader_val, index, accelerator)
+    predicted_ids, true_ids = generate_query_recommendations(
+        query_model, dataloader_val, index, accelerator
+    )
 
     k = [1, 5, 10, 25]
 
     hit_rate_score = hit_rate(true_ids, predicted_ids, k=k)
-    map_score = mean_average_precision_at_k(true_ids=true_ids, predicted_ids=predicted_ids, k=k)
+    map_score = mean_average_precision_at_k(
+        true_ids=true_ids, predicted_ids=predicted_ids, k=k
+    )
 
-    scores = pd.DataFrame({
-        "hit_rate": hit_rate_score,
-        "mAP": map_score,
-    })
+    scores = pd.DataFrame(
+        {
+            "hit_rate": hit_rate_score,
+            "mAP": map_score,
+        }
+    )
     scores.index.name = "k"
     logging.info(scores)
 

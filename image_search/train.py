@@ -13,9 +13,9 @@ from image_search.preprocessing import KeywordProcessor, temporal_train_test_spl
 
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    filename='example.log',
-    filemode='a'
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    filename="example.log",
+    filemode="a",
 )
 
 # CONSTANTS
