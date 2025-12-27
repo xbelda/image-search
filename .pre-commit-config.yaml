@@ -1,0 +1,16 @@
+repos:
+- repo: https://github.com/commitizen-tools/commitizen
+  hooks:
+  - id: commitizen
+  - id: commitizen-branch
+    stages:
+    - pre-push
+  rev: v4.10.1
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.14.10  # Ruff version.
+  hooks:
+    - id: ruff-check  # Run the linter.
+      types_or: [ python, pyi ]
+      args: [ --fix ]
+    - id: ruff-format  # Run the formatter.
+      types_or: [ python, pyi ]
