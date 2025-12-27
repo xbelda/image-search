@@ -12,5 +12,7 @@ repos:
     - id: ruff-check  # Run the linter.
       types_or: [ python, pyi ]
       args: [ --fix ]
+      exclude: ^notebooks/
     - id: ruff-format  # Run the formatter.
       types_or: [ python, pyi ]
+      exclude: ^notebooks/
